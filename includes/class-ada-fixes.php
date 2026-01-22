@@ -84,16 +84,18 @@ class ADA_Fixes {
             return $html;
         }
 
-        $fixes = apply_filters( 'flashblocks_accessibility_ada_fixes', [
-            [ $this, 'fix_progressbars' ],
+        // Single-pass tag processor for efficiency (progressbars, images, inputs)
+        $html = $this->fix_tags( $html );
+
+        // Regex-based fixes that need to inspect element content
+        $regex_fixes = apply_filters( 'flashblocks_accessibility_ada_fixes', [
             [ $this, 'fix_empty_links' ],
             [ $this, 'fix_empty_buttons' ],
-            [ $this, 'fix_images' ],
-            [ $this, 'fix_inputs' ],
             [ $this, 'fix_duplicate_labels' ],
+            // [ $this, 'fix_redundant_aria' ],
         ] );
 
-        foreach ( $fixes as $fix ) {
+        foreach ( $regex_fixes as $fix ) {
             if ( is_callable( $fix ) ) {
                 $html = $fix( $html );
             }
@@ -142,22 +144,79 @@ class ADA_Fixes {
     }
 
     /**
-     * Fix progressbar elements without accessible names.
+     * Single-pass tag processor for all tag-based fixes.
+     * Handles progressbars, images, and inputs in one DOM traversal.
+     * Use 'flashblocks_accessibility_process_tag' filter to add custom tag fixes.
      */
-    public function fix_progressbars( string $html ): string {
+    public function fix_tags( string $html ): string {
         $tags = new WP_HTML_Tag_Processor( $html );
+        $skip_inputs = [ 'hidden', 'submit', 'button', 'image', 'reset' ];
 
         while ( $tags->next_tag() ) {
-            if ( $tags->get_attribute( 'role' ) !== 'progressbar' || $this->has_accessible_name( $tags ) ) {
+            $tag_name = strtolower( $tags->get_tag() );
+
+            // Progressbars (any tag with role="progressbar")
+            if ( $tags->get_attribute( 'role' ) === 'progressbar' && ! $this->has_accessible_name( $tags ) ) {
+                $pct = $this->get_percentage( $tags );
+                $label = $pct !== null
+                    ? sprintf( 'Progress: %d%% complete', $pct )
+                    : 'Progress indicator';
+                $tags->set_attribute( 'aria-label', $label );
                 continue;
             }
 
-            $pct = $this->get_percentage( $tags );
-            $label = $pct !== null
-                ? sprintf( 'Progress: %d%% complete', $pct )
-                : 'Progress indicator';
+            // Images without alt
+            if ( $tag_name === 'img' && $tags->get_attribute( 'alt' ) === null ) {
+                $role    = $tags->get_attribute( 'role' );
+                $classes = strtolower( $tags->get_attribute( 'class' ) ?? '' );
+                $title   = $tags->get_attribute( 'title' );
 
-            $tags->set_attribute( 'aria-label', $label );
+                $is_decorative = $role === 'presentation'
+                    || $role === 'none'
+                    || (bool) preg_match( '/decorative|bg-|background|spacer/', $classes );
+
+                $tags->set_attribute( 'alt', ( $title && ! $is_decorative ) ? $title : '' );
+                continue;
+            }
+
+            // Inputs without labels
+            if ( $tag_name === 'input' ) {
+                $type = strtolower( $tags->get_attribute( 'type' ) ?? 'text' );
+
+                if ( in_array( $type, $skip_inputs, true ) ) {
+                    continue;
+                }
+
+                // Skip if already accessible
+                if ( $tags->get_attribute( 'aria-label' ) !== null
+                    || $tags->get_attribute( 'aria-labelledby' ) !== null
+                    || $tags->get_attribute( 'id' ) !== null ) {
+                    continue;
+                }
+
+                // Try placeholder
+                $label = $tags->get_attribute( 'placeholder' );
+
+                // Try name
+                if ( ! $label ) {
+                    $name = $tags->get_attribute( 'name' );
+                    if ( $name ) {
+                        $label = ucwords( trim( preg_replace( '/[\[\]_-]+/', ' ', $name ) ) );
+                    }
+                }
+
+                // Fallback to type
+                if ( ! $label ) {
+                    $label = self::INPUT_LABELS[ $type ] ?? 'Input field';
+                }
+
+                $tags->set_attribute( 'aria-label', $label );
+                continue;
+            }
+
+            // Allow plugins to add their own tag-based fixes
+            // Passes: tag processor, tag name, this instance
+            do_action( 'flashblocks_accessibility_process_tag', $tags, $tag_name, $this );
         }
 
         return $tags->get_updated_html();
@@ -242,92 +301,40 @@ class ADA_Fixes {
     }
 
     /**
-     * Fix images without alt attributes.
-     */
-    public function fix_images( string $html ): string {
-        $tags = new WP_HTML_Tag_Processor( $html );
-
-        while ( $tags->next_tag( 'img' ) ) {
-            if ( $tags->get_attribute( 'alt' ) !== null ) {
-                continue;
-            }
-
-            $role    = $tags->get_attribute( 'role' );
-            $classes = strtolower( $tags->get_attribute( 'class' ) ?? '' );
-            $title   = $tags->get_attribute( 'title' );
-
-            $is_decorative = $role === 'presentation'
-                || $role === 'none'
-                || (bool) preg_match( '/decorative|bg-|background|spacer/', $classes );
-
-            $tags->set_attribute( 'alt', ( $title && ! $is_decorative ) ? $title : '' );
-        }
-
-        return $tags->get_updated_html();
-    }
-
-    /**
-     * Fix inputs without labels.
-     */
-    public function fix_inputs( string $html ): string {
-        $tags = new WP_HTML_Tag_Processor( $html );
-        $skip = [ 'hidden', 'submit', 'button', 'image', 'reset' ];
-
-        while ( $tags->next_tag( 'input' ) ) {
-            $type = strtolower( $tags->get_attribute( 'type' ) ?? 'text' );
-
-            if ( in_array( $type, $skip, true ) ) {
-                continue;
-            }
-
-            // Skip if already accessible
-            if ( $tags->get_attribute( 'aria-label' ) !== null
-                || $tags->get_attribute( 'aria-labelledby' ) !== null
-                || $tags->get_attribute( 'id' ) !== null ) {
-                continue;
-            }
-
-            // Try placeholder
-            $label = $tags->get_attribute( 'placeholder' );
-
-            // Try name
-            if ( ! $label ) {
-                $name = $tags->get_attribute( 'name' );
-                if ( $name ) {
-                    $label = ucwords( trim( preg_replace( '/[\[\]_-]+/', ' ', $name ) ) );
-                }
-            }
-
-            // Fallback to type
-            if ( ! $label ) {
-                $label = self::INPUT_LABELS[ $type ] ?? 'Input field';
-            }
-
-            $tags->set_attribute( 'aria-label', $label );
-        }
-
-        return $tags->get_updated_html();
-    }
-
-    /**
-     * Fix duplicate labels (multiple labels with same 'for' attribute).
-     * Removes 'for' attribute from wrapper labels used for styling.
+     * Fix duplicate/redundant labels.
+     * Removes redundant aria-label when it matches visible text content.
      */
     public function fix_duplicate_labels( string $html ): string {
-        // Fix FluentForms file upload wrapper labels
-        // These have class="ff_file_upload_holder" and wrap the input for click handling
-        $html = preg_replace(
-            '/<label\s+for="([^"]+)"\s+class="ff_file_upload_holder"/',
-            '<label class="ff_file_upload_holder"',
+        // Remove redundant aria-label from labels where it matches visible text
+        $html = preg_replace_callback(
+            '/<label\s([^>]*aria-label="([^"]+)"[^>]*)>([^<]*)<\/label>/i',
+            function( $m ) {
+                $attrs      = $m[1];
+                $aria_label = trim( $m[2] );
+                $text       = trim( $m[3] );
+
+                // If aria-label matches visible text (case-insensitive), remove it
+                if ( strcasecmp( $aria_label, $text ) === 0 ) {
+                    $attrs = preg_replace( '/\s*aria-label="[^"]*"/', '', $attrs );
+                    return '<label ' . trim( $attrs ) . '>' . $m[3] . '</label>';
+                }
+
+                return $m[0];
+            },
             $html
         );
 
-        // Handle reverse attribute order: class before for
-        $html = preg_replace(
-            '/<label\s+class="ff_file_upload_holder"\s+for="([^"]+)"/',
-            '<label class="ff_file_upload_holder"',
-            $html
-        );
+        return $html;
+    }
+
+    /**
+     * Remove redundant ARIA attributes where the value is the default.
+     * aria-required="false" is the default and unnecessary.
+     * Note: aria-invalid="false" is kept as it explicitly signals valid state in forms with validation.
+     */
+    public function fix_redundant_aria( string $html ): string {
+        // Remove aria-required="false" (false is the default, rarely useful to state explicitly)
+        $html = preg_replace( '/\s*aria-required="false"/', '', $html );
 
         return $html;
     }

@@ -46,6 +46,15 @@ Scans the final rendered HTML and fixes common accessibility issues from any sou
 | Empty buttons (icon buttons) | Adds `aria-label` based on class (Close, Menu, Search, etc.) |
 | Images without alt attributes | Adds `alt=""` for decorative, or uses title attribute |
 | Form inputs without labels | Adds `aria-label` from placeholder, name, or input type |
+| Redundant aria-label on labels | Removes `aria-label` when it matches visible text content |
+
+### FluentForms-Specific Fixes
+These fixes are only loaded when FluentForms is active:
+
+| Issue | Fix Applied |
+|-------|-------------|
+| Multiple labels for file upload | Removes `for` attribute from `ff_file_upload_holder` wrapper labels |
+| Orphaned group labels | Converts `<label>` to `<span>` in radio/checkbox group headers |
 
 ## Installation
 
@@ -146,6 +155,11 @@ add_filter('flashblocks_accessibility_ada_fixes', function($fixes) {
 - `fix_empty_buttons` - Buttons without text content
 - `fix_images` - Images without alt attributes
 - `fix_inputs` - Form inputs without labels
+- `fix_duplicate_labels` - Redundant aria-labels on labels
+
+**FluentForms fixes** (when plugin is active):
+- `fix_file_upload_labels` - Multiple labels for file uploads
+- `fix_orphaned_group_labels` - Orphaned labels in radio/checkbox groups
 
 ## Updating
 
@@ -165,6 +179,7 @@ flashblocks-accessibility/
     ├── class-aria-attributes.php    # Aria label/hidden functionality
     ├── class-empty-blocks.php       # Empty block removal
     ├── class-ada-fixes.php          # Automatic ADA fixes
+    ├── class-fluentforms-fixes.php  # FluentForms-specific fixes
     └── class-updater.php            # GitHub updater
 ```
 
@@ -174,6 +189,7 @@ All classes use the `Flashblocks\Accessibility` namespace:
 - `Flashblocks\Accessibility\Includes\Aria_Attributes`
 - `Flashblocks\Accessibility\Includes\Empty_Blocks`
 - `Flashblocks\Accessibility\Includes\ADA_Fixes`
+- `Flashblocks\Accessibility\Includes\FluentForms_Fixes`
 - `Flashblocks\Accessibility\Includes\Updater`
 
 ### Key Hooks
