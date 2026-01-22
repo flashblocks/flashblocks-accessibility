@@ -90,6 +90,7 @@ class ADA_Fixes {
             [ $this, 'fix_empty_buttons' ],
             [ $this, 'fix_images' ],
             [ $this, 'fix_inputs' ],
+            [ $this, 'fix_duplicate_labels' ],
         ] );
 
         foreach ( $fixes as $fix ) {
@@ -306,5 +307,28 @@ class ADA_Fixes {
         }
 
         return $tags->get_updated_html();
+    }
+
+    /**
+     * Fix duplicate labels (multiple labels with same 'for' attribute).
+     * Removes 'for' attribute from wrapper labels used for styling.
+     */
+    public function fix_duplicate_labels( string $html ): string {
+        // Fix FluentForms file upload wrapper labels
+        // These have class="ff_file_upload_holder" and wrap the input for click handling
+        $html = preg_replace(
+            '/<label\s+for="([^"]+)"\s+class="ff_file_upload_holder"/',
+            '<label class="ff_file_upload_holder"',
+            $html
+        );
+
+        // Handle reverse attribute order: class before for
+        $html = preg_replace(
+            '/<label\s+class="ff_file_upload_holder"\s+for="([^"]+)"/',
+            '<label class="ff_file_upload_holder"',
+            $html
+        );
+
+        return $html;
     }
 }
