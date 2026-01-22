@@ -1,6 +1,6 @@
 # Flashblocks Accessibility
 
-A WordPress plugin that enhances accessibility for Gutenberg blocks.
+A WordPress plugin that enhances accessibility for Gutenberg blocks and automatically fixes common ADA issues.
 
 ## Table of Contents
 
@@ -14,7 +14,10 @@ A WordPress plugin that enhances accessibility for Gutenberg blocks.
 
 ## Overview
 
-Flashblocks Accessibility improves ADA compliance by adding ARIA attributes to Gutenberg blocks and removing empty blocks that would cause accessibility issues.
+Flashblocks Accessibility improves ADA compliance by:
+- Adding ARIA attributes to Gutenberg blocks
+- Removing empty blocks that cause accessibility issues
+- Automatically fixing common ADA issues in rendered HTML (from any source)
 
 ## Features
 
@@ -33,6 +36,17 @@ Flashblocks Accessibility improves ADA compliance by adding ARIA attributes to G
   - `core/navigation-link` - Links with no text
 - Extendable via PHP filter
 
+### Automatic ADA Fixes
+Scans the final rendered HTML and fixes common accessibility issues from any source (plugins, themes, etc.):
+
+| Issue | Fix Applied |
+|-------|-------------|
+| Progressbars without accessible names | Adds `aria-label="Progress: X% complete"` |
+| Empty links (icon links, social links) | Adds `aria-label` based on href (Facebook, Email, Phone, etc.) |
+| Empty buttons (icon buttons) | Adds `aria-label` based on class (Close, Menu, Search, etc.) |
+| Images without alt attributes | Adds `alt=""` for decorative, or uses title attribute |
+| Form inputs without labels | Adds `aria-label` from placeholder, name, or input type |
+
 ## Installation
 
 1. Download the latest release from the [GitHub repository](https://github.com/sunmorgn/flashblocks-accessibility/releases)
@@ -45,6 +59,7 @@ After activation, the plugin works automatically:
 
 - **Aria controls** appear in the block inspector for supported blocks (in the Advanced panel by default)
 - **Empty blocks** are automatically removed from the frontend output
+- **ADA fixes** are applied to all frontend HTML via output buffering
 
 ## Configuration
 
@@ -103,6 +118,35 @@ add_filter('flashblocks_accessibility_empty_blocks', function($blocks) {
 - `core/button`
 - `core/navigation-link`
 
+### ADA Fixes Settings
+
+Use the `flashblocks_accessibility_ada_fixes` filter to customize which fixes are applied:
+
+```php
+add_filter('flashblocks_accessibility_ada_fixes', function($fixes) {
+    // Remove a specific fix (e.g., don't auto-fix images)
+    return array_filter($fixes, function($fix) {
+        return $fix[1] !== 'fix_images';
+    });
+});
+
+// Or add a custom fix
+add_filter('flashblocks_accessibility_ada_fixes', function($fixes) {
+    $fixes[] = function($html) {
+        // Your custom fix logic
+        return $html;
+    };
+    return $fixes;
+});
+```
+
+**Default fixes:**
+- `fix_progressbars` - ARIA progressbar elements
+- `fix_empty_links` - Links without text content
+- `fix_empty_buttons` - Buttons without text content
+- `fix_images` - Images without alt attributes
+- `fix_inputs` - Form inputs without labels
+
 ## Updating
 
 1. Create a new **Release** on GitHub with a tag version higher than the current version
@@ -120,6 +164,7 @@ flashblocks-accessibility/
 └── includes/
     ├── class-aria-attributes.php    # Aria label/hidden functionality
     ├── class-empty-blocks.php       # Empty block removal
+    ├── class-ada-fixes.php          # Automatic ADA fixes
     └── class-updater.php            # GitHub updater
 ```
 
@@ -128,14 +173,27 @@ flashblocks-accessibility/
 All classes use the `Flashblocks\Accessibility` namespace:
 - `Flashblocks\Accessibility\Includes\Aria_Attributes`
 - `Flashblocks\Accessibility\Includes\Empty_Blocks`
+- `Flashblocks\Accessibility\Includes\ADA_Fixes`
 - `Flashblocks\Accessibility\Includes\Updater`
 
 ### Key Hooks
 
 **Actions:**
 - `enqueue_block_editor_assets` - Loads the admin.js for block editor controls
+- `template_redirect` - Starts output buffering for ADA fixes
+- `shutdown` - Ends output buffering and applies ADA fixes
 
 **Filters:**
 - `render_block` - Modifies block HTML for aria attributes and empty block removal
 - `flashblocks_accessibility_settings` - Customize aria label settings
 - `flashblocks_accessibility_empty_blocks` - Customize empty block list
+- `flashblocks_accessibility_ada_fixes` - Customize automatic ADA fixes
+
+### How ADA Fixes Work
+
+The `ADA_Fixes` class uses output buffering to capture the final HTML before it's sent to the browser. It then applies fixes using:
+
+- **WP_HTML_Tag_Processor** - For robust attribute manipulation on self-closing tags (`<img>`, `<input>`) and attribute-only checks (`role="progressbar"`)
+- **Regex** - Only where inner content must be inspected (`<a>...</a>`, `<button>...</button>`)
+
+This hybrid approach ensures reliability while still being able to check if elements have visible text content.

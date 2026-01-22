@@ -11,3 +11,4 @@ node_modules/
 auth.json
 build/
 .env
+.claude/
