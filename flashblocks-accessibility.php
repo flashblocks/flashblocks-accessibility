@@ -13,8 +13,8 @@
  * Version:           1.1.0
  * Author:            Sunny Morgan
  * Author URI:        https://github.com/sunmorgn
- * License:           MIT
- * License URI:       https://opensource.org/licenses/MIT
+ * License:           GPL-2.0-or-later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       flashblocks-accessibility
  * Requires at least: 6.0
  * Requires PHP:      7.4
