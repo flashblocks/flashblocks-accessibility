@@ -4,13 +4,12 @@
  * Flashblocks Accessibility
  *
  * @link              https://github.com/sunmorgn/flashblocks-accessibility
- * @since             1.1.0
  *
  * @wordpress-plugin
  * Plugin Name:       Flashblocks Accessibility
  * Plugin URI:        https://github.com/sunmorgn/flashblocks-accessibility
  * Description:       Enhances accessibility by adding ARIA attributes to Gutenberg blocks, removing empty blocks, and automatically fixing common ADA issues in rendered HTML.
- * Version:           1.1.0
+ * Version:           1.1.1
  * Author:            Sunny Morgan
  * Author URI:        https://github.com/sunmorgn
  * License:           GPL-2.0-or-later
@@ -40,7 +39,7 @@ require_once DIR . '/includes/class-ada-fixes.php';
 new Includes\ADA_Fixes();
 
 // FluentForms-specific fixes (only if plugin is active)
-add_action('plugins_loaded', function() {
+add_action('plugins_loaded', function () {
     if (defined('FLUENTFORM')) {
         require_once DIR . '/includes/class-fluentforms-fixes.php';
         new Includes\FluentForms_Fixes();
@@ -48,6 +47,6 @@ add_action('plugins_loaded', function() {
 });
 
 if (is_admin()) {
-	require_once DIR . '/includes/class-updater.php';
-	new Includes\Updater();
+    require_once DIR . '/includes/class-updater.php';
+    new Includes\Updater();
 }

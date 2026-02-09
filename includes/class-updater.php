@@ -207,6 +207,10 @@ class Updater {
      * @return boolean|array $result
      */
     public function install_update($response, $hook_extra, $result) {
+        if ( empty( $hook_extra['plugin'] ) || $hook_extra['plugin'] !== self::PLUGIN_FILE ) {
+            return $result;
+        }
+
         global $wp_filesystem;
 
         $correct_directory_name = dirname( self::PLUGIN_FILE );
