@@ -21,6 +21,7 @@ class Empty_Blocks {
         'core/heading',
         'core/post-title',
         'core/button',
+        'core/buttons',
         'core/navigation-link',
     ];
 
