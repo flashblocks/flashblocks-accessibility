@@ -35,7 +35,8 @@ class Aria_Attributes {
         wp_enqueue_script(
             'flashblocks-accessibility-editor',
             plugins_url('../admin.js', __FILE__),
-            array('wp-blocks', 'wp-dom-ready', 'wp-edit-post')
+            array('wp-blocks', 'wp-dom-ready', 'wp-edit-post'),
+            filemtime( dirname( __DIR__ ) . '/admin.js' )
         );
 
         $default_settings = [
