@@ -42,12 +42,18 @@ require_once DIR . '/includes/class-ada-fixes.php';
 new Includes\ADA_Fixes();
 
 // FluentForms-specific fixes (only if plugin is active)
-add_action('plugins_loaded', function () {
-    if (defined('FLUENTFORM')) {
-        require_once DIR . '/includes/class-fluentforms-fixes.php';
-        new Includes\FluentForms_Fixes();
-    }
-});
+function load_fluentforms_fixes(): void {
+	if (defined('FLUENTFORM')) {
+		require_once DIR . '/includes/class-fluentforms-fixes.php';
+		new Includes\FluentForms_Fixes();
+	}
+}
+
+if (did_action('plugins_loaded')) {
+	load_fluentforms_fixes();
+} else {
+	add_action('plugins_loaded', __NAMESPACE__ . '\load_fluentforms_fixes');
+}
 
 if (is_admin()) {
     require_once DIR . '/includes/class-updater.php';
