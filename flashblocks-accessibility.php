@@ -55,6 +55,39 @@ if (did_action('plugins_loaded')) {
 	add_action('plugins_loaded', __NAMESPACE__ . '\load_fluentforms_fixes');
 }
 
+/**
+ * Registers the Video Play Toggle block when it is not provided by the
+ * standalone Flashblocks Video Play Toggle plugin.
+ */
+function register_video_play_toggle_block(): void {
+	$registry = \WP_Block_Type_Registry::get_instance();
+
+	if ($registry->is_registered('flashblocks/video-play-toggle')) {
+		return;
+	}
+
+	$block_path = DIR . '/build/video-play-toggle';
+
+	register_block_type($block_path);
+
+	if ($registry->is_registered('flashblocks/video-controls')) {
+		return;
+	}
+
+	register_block_type(
+		$block_path,
+		array(
+			'name'        => 'flashblocks/video-controls',
+			'title'       => __('Video Play Toggle (Legacy)', 'flashblocks-accessibility'),
+			'description' => __('Legacy alias for Video Play Toggle blocks saved before the rename.', 'flashblocks-accessibility'),
+			'supports'    => array(
+				'inserter' => false,
+			),
+		)
+	);
+}
+add_action('init', __NAMESPACE__ . '\register_video_play_toggle_block', 20);
+
 if (is_admin()) {
     require_once DIR . '/includes/class-updater.php';
     new Includes\Updater();

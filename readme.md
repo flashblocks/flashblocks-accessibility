@@ -16,6 +16,7 @@ A WordPress plugin that enhances accessibility for Gutenberg blocks and automati
 
 Flashblocks Accessibility improves ADA compliance by:
 - Adding ARIA attributes to Gutenberg blocks
+- Providing a Video Play Toggle block for accessible play/pause controls
 - Removing empty blocks that cause accessibility issues
 - Automatically fixing common ADA issues in rendered HTML (from any source)
 
@@ -27,6 +28,12 @@ Flashblocks Accessibility improves ADA compliance by:
 - Automatically adds `aria-hidden="true"` to decorative images (images with empty alt text)
 - Works with WordPress 6.8+ by hiding its control when native support is present
 - Configurable via PHP filter
+
+### Video Play Toggle
+- Adds a customizable play/pause toggle block for videos
+- Can target a video by query selector
+- Falls back to the nearest video inside a Cover block
+- Includes a legacy alias for blocks saved as `flashblocks/video-controls`
 
 ### Empty Block Removal
 - Automatically removes empty blocks that cause ADA compliance issues:
