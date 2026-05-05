@@ -18,7 +18,7 @@
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Flashblocks Module: yes
- * Flashblocks Category: Extensions
+ * Flashblocks Category: Blocks
  * Flashblocks Tags: accessibility, aria, ada
  */
 
